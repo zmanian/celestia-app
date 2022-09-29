@@ -1,18 +1,25 @@
 package testnode
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/celestiaorg/celestia-app/testutil"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/stretchr/testify/suite"
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/config"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
+	"github.com/tendermint/tendermint/pkg/consts"
 )
 
 type IntegrationTestSuite struct {
 	suite.Suite
 
 	cleanups []func()
+	accounts []string
 	cctx     client.Context
 }
 
@@ -20,9 +27,14 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.T().Log("setting up integration test suite")
 	require := s.Require()
 
+	// we create an arbitray number of funded accounts
+	for i := 0; i < 300; i++ {
+		s.accounts = append(s.accounts, tmrand.Str(9))
+	}
+
 	tmCfg := config.DefaultConfig()
 	tmCfg.Consensus.TimeoutCommit = time.Millisecond * 100
-	tmNode, app, cctx, err := New(s.T(), tmCfg, false, "taco", "salad")
+	tmNode, app, cctx, err := New(s.T(), tmCfg, false, s.accounts...)
 	require.NoError(err)
 
 	cctx, stopNode, err := StartNode(tmNode, cctx)
@@ -42,10 +54,44 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	}
 }
 
-func (s *IntegrationTestSuite) TestNetwork_Liveness() {
+func (s *IntegrationTestSuite) Test_Liveness() {
 	require := s.Require()
-	_, err := WaitForHeight(s.cctx, 20)
+	_, err := WaitForHeight(s.cctx, 10)
 	require.NoError(err)
+}
+
+func (s *IntegrationTestSuite) Test_FillBlock() {
+	require := s.Require()
+
+	for squareSize := 16; squareSize < consts.MaxSquareSize; squareSize *= 2 {
+		resps, err := FillBlock(s.cctx, squareSize, s.accounts)
+		require.NoError(err)
+
+		err = WaitForNextBlock(s.cctx)
+		require.NoError(err)
+		err = WaitForNextBlock(s.cctx)
+		require.NoError(err)
+
+		var inclusionHeight int64
+		for i, v := range resps {
+			res, err := testutil.QueryWithOutProof(s.cctx, v.TxHash)
+			require.NoError(err)
+			require.Equal(abci.CodeTypeOK, res.TxResult.Code)
+			if inclusionHeight == 0 {
+				inclusionHeight = res.Height
+				continue
+			}
+			// check that all of the txs are included in the same block
+			fmt.Println("square size", squareSize, i)
+			require.Equal(inclusionHeight, res.Height)
+		}
+
+		b, err := s.cctx.Client.Block(context.TODO(), &inclusionHeight)
+		require.NoError(err)
+		fmt.Println("square size", b.Block.OriginalSquareSize)
+		require.Equal(uint64(squareSize), b.Block.OriginalSquareSize)
+	}
+
 }
 
 func TestIntegrationTestSuite(t *testing.T) {

@@ -1,7 +1,6 @@
 package testnode
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +23,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/tendermint/tendermint/config"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	"github.com/tendermint/tendermint/types"
@@ -165,12 +163,6 @@ func createValidator(
 	if err != nil {
 		return err
 	}
-	ethPrivateKey, err := crypto.GenerateKey()
-	if err != nil {
-		return err
-	}
-	orchEthPublicKey := ethPrivateKey.Public().(*ecdsa.PublicKey)
-	ethAddr := crypto.PubkeyToAddress(*orchEthPublicKey)
 
 	createValMsg, err := stakingtypes.NewMsgCreateValidator(
 		sdk.ValAddress(addr),
@@ -179,8 +171,6 @@ func createValidator(
 		stakingtypes.NewDescription("test", "", "", "", ""),
 		stakingtypes.NewCommissionRates(commission, sdk.OneDec(), sdk.OneDec()),
 		sdk.OneInt(),
-		addr,
-		ethAddr,
 	)
 	if err != nil {
 		return err

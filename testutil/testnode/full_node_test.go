@@ -56,8 +56,13 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 
 func (s *IntegrationTestSuite) Test_Liveness() {
 	require := s.Require()
-	_, err := WaitForHeight(s.cctx, 10)
+	err := WaitForNextBlock(s.cctx)
 	require.NoError(err)
+	// check that we're actually able to set the consensus params
+	params, err := s.cctx.Client.ConsensusParams(context.TODO(), nil)
+	require.NoError(err)
+	require.Equal(1, params.ConsensusParams.Block.TimeIotaMs)
+	_, err = WaitForHeight(s.cctx, 20)
 }
 
 func (s *IntegrationTestSuite) Test_FillBlock() {

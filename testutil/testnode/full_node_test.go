@@ -2,7 +2,6 @@ package testnode
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -61,8 +60,9 @@ func (s *IntegrationTestSuite) Test_Liveness() {
 	// check that we're actually able to set the consensus params
 	params, err := s.cctx.Client.ConsensusParams(context.TODO(), nil)
 	require.NoError(err)
-	require.Equal(1, params.ConsensusParams.Block.TimeIotaMs)
+	require.Equal(int64(1), params.ConsensusParams.Block.TimeIotaMs)
 	_, err = WaitForHeight(s.cctx, 20)
+	require.NoError(err)
 }
 
 func (s *IntegrationTestSuite) Test_FillBlock() {
@@ -78,7 +78,7 @@ func (s *IntegrationTestSuite) Test_FillBlock() {
 		require.NoError(err)
 
 		var inclusionHeight int64
-		for i, v := range resps {
+		for _, v := range resps {
 			res, err := testutil.QueryWithOutProof(s.cctx, v.TxHash)
 			require.NoError(err)
 			require.Equal(abci.CodeTypeOK, res.TxResult.Code)
@@ -87,13 +87,11 @@ func (s *IntegrationTestSuite) Test_FillBlock() {
 				continue
 			}
 			// check that all of the txs are included in the same block
-			fmt.Println("square size", squareSize, i)
 			require.Equal(inclusionHeight, res.Height)
 		}
 
 		b, err := s.cctx.Client.Block(context.TODO(), &inclusionHeight)
 		require.NoError(err)
-		fmt.Println("square size", b.Block.OriginalSquareSize)
 		require.Equal(uint64(squareSize), b.Block.OriginalSquareSize)
 	}
 

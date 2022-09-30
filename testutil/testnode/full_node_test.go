@@ -40,7 +40,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	require.NoError(err)
 	s.cleanups = append(s.cleanups, stopNode)
 
-	cctx, cleanupGRPC, err := StartGRPCServer(app, *DefaultAppConfig(), cctx)
+	cctx, cleanupGRPC, err := StartGRPCServer(app, DefaultAppConfig(), cctx)
 	s.cleanups = append(s.cleanups, cleanupGRPC)
 
 	s.cctx = cctx

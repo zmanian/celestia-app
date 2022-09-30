@@ -35,7 +35,7 @@ func StartNode(tmNode *node.Node, cctx client.Context) (client.Context, func(), 
 // StartGRPCServer starts the grpc server using the provided application and
 // config. A grpc client connection to that server is also added to the client
 // context. The returned function should be used to shutdown the server.
-func StartGRPCServer(app srvtypes.Application, appCfg srvconfig.Config, cctx client.Context) (client.Context, func(), error) {
+func StartGRPCServer(app srvtypes.Application, appCfg *srvconfig.Config, cctx client.Context) (client.Context, func(), error) {
 	// Add the tx service in the gRPC router.
 	app.RegisterTxService(cctx)
 

@@ -99,6 +99,20 @@ func FillBlock(cctx client.Context, squareSize int, accounts []string) ([]*sdk.T
 		// use the key for accounts[i] to create a singer used for a single PFD
 		signer := types.NewKeyringSigner(cctx.Keyring, accounts[i], cctx.ChainID)
 
+		rec := signer.GetSignerInfo()
+		addr, err := rec.GetAddress()
+		if err != nil {
+			return nil, err
+		}
+
+		acc, seq, err := cctx.AccountRetriever.GetAccountNumberSequence(cctx, addr)
+		if err != nil {
+			return nil, err
+		}
+
+		signer.SetAccountNumber(acc)
+		signer.SetSequence(seq)
+
 		// create a random msg per row
 		pfd, err := payment.BuildPayForData(
 			context.TODO(),
@@ -122,14 +136,14 @@ func FillBlock(cctx client.Context, squareSize int, accounts []string) ([]*sdk.T
 			return nil, err
 		}
 
-		res, err := cctx.BroadcastTxSync(rawTx)
+		res, err := cctx.BroadcastTxCommit(rawTx)
 		if err != nil {
 			return nil, err
 		}
 		if res.Code != abci.CodeTypeOK {
-			return nil, fmt.Errorf("failure to broadcast tx sync: %s", res.RawLog)
+			return nil, fmt.Errorf("failure to broadcast tx sync: %s %d", res.RawLog, i)
 		}
 		results[i] = res
 	}
-	return results, nil
+	return nil, nil
 }

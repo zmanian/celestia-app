@@ -33,10 +33,7 @@ func (s *EvanAndMattDebugSuite) SetupSuite() {
 		s.accounts = append(s.accounts, tmrand.Str(9))
 	}
 
-	genState, kr, err := DefaultGenesisState(s.accounts...)
-	require.NoError(err)
-
-	tmNode, app, cctx, err := New(s.T(), DefaultParams(), DefaultTendermintConfig(), false, genState, kr)
+	tmNode, app, cctx, err := New(s.T(), DefaultParams(), DefaultTendermintConfig(), false, s.accounts...)
 	require.NoError(err)
 
 	cctx, stopNode, err := StartNode(tmNode, cctx)

@@ -1,9 +1,12 @@
 package testnode
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/celestiaorg/celestia-app/app"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
@@ -57,10 +60,19 @@ func (s *EvanAndMattDebugSuite) TearDownSuite() {
 
 func (s *EvanAndMattDebugSuite) TestQueryAccount() {
 	t := s.T()
-	height := int64(1)
-	blockRes, err := s.cctx.Client.Block(s.cctx.GoContext(), &height)
+	bankclient := banktypes.NewQueryClient(s.cctx.GRPCClient)
+
+	acc := s.accounts[0]
+	rec, err := s.cctx.Keyring.Key(acc)
 	require.NoError(t, err)
-	fmt.Println(blockRes.Block.ChainID, len(blockRes.Block.Txs))
+
+	addr, err := rec.GetAddress()
+	require.NoError(t, err)
+
+	resp, err := bankclient.Balance(context.TODO(), banktypes.NewQueryBalanceRequest(addr, app.BondDenom))
+	require.NoError(t, err)
+
+	fmt.Println(resp.Balance)
 }
 
 func TestEvanAndMattDebugSuite(t *testing.T) {
